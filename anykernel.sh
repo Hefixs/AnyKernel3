@@ -1,29 +1,3 @@
-ui_print "酷安AMXlil"
-ui_print "问题交流群983769627"
-ui_print "- 安装须知（必读）"
-ui_print "此ak3仅支持欧真加机型刷入请核对好机型"
-ui_print "请核对好内核版本号再刷入"
-ui_print "  [音量上] : 加入QQ群并安装 "
-ui_print "  [音量下] : 直接安装 "
-ui_print "============================================="
-
-jump="false"
-key=$(waitkey)
-
-if [ "$key" = "up" ]; then
-    jump="true"
-    ui_print "- "
-else
-    ui_print "- "
-fi
-
-if [ "$jump" = "true" ]; then
-    boot=$("$GP" sys.boot_completed)
-    if [ "$boot" = "1" ]; then
-        ui_print "- 正在打开酷安..."
-        am start -a android.intent.action.VIEW -d "https://qun.qq.com/universal-share/share?ac=1&authKey=hgLgcwLRqmp8srmgb9TJliL0AFuEOg8mAhmyAdHcbfGS%2B9LUFbef05IYdsQfQymH&busi_data=eyJncm91cENvZGUiOiI5ODM3Njk2MjciLCJ0b2tlbiI6ImZId3A2NkxLb0NSQzhkVzdoelFUc2ZlZnVFdCtoVHVXcDViV1laeUtBeUZIRkZtNFJFODJNM05aYjdkZmVOalciLCJ1aW4iOiIyNzIyMDQ4OTk3In0%3D&data=w6zieS1V9B-Nb8Ni2JKBUnoeDLxXRu_06J0RI42pw8R0qjRYURrxdn_yZ1yAO8Rr9r-VZZyd0I-Kh8T21lxWyw&svctype=4&tempid=h5_group_info" >/dev/null 2>&1
-    fi
-fi
 properties() { '
 kernel.string=Build by AMXlil
 do.devicecheck=0
@@ -49,9 +23,44 @@ ramdisk_compression=auto
 patch_vbmeta_flag=auto
 no_magisk_check=1
 
-# import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh
+waitkey() {
+    command -v getevent >/dev/null 2>&1 || { echo none; return; }
+    end=$(($(date +%s) + 60))
+    while [ "$(date +%s)" -lt "$end" ]; do
+        ev=$(timeout 1 getevent -lqc 1 2>/dev/null | {
+            while read -r line; do
+                case "$line" in
+                    *KEY_VOLUMEDOWN*DOWN*) echo "down"; break ;;
+                    *KEY_VOLUMEUP*DOWN*) echo "up"; break ;;
+                    *KEY_POWER*DOWN*) input keyevent KEY_POWER; echo "power"; break ;;
+                esac
+            done
+        })
+        [ -n "$ev" ] && echo "$ev" && return
+    done
+    echo timeout
+}
 
+ui_print "酷安AMXlil"
+ui_print "问题交流群983769627"
+ui_print " 安装须知（必读）"
+ui_print "此ak3仅支持欧真加机型刷入请核对好机型"
+ui_print "请核对好内核版本号再刷入"
+ui_print " "
+ui_print " "
+ui_print "  [音量上] : 已阅读，继续安装"
+ui_print "  [音量下] : 退出安装"
+
+
+key=$(waitkey)
+case "$key" in
+    up) ;;
+    none) ui_print "- 当前环境无法读取按键，以下选项均使用默认值" ;;
+    timeout) abort "等待按键超时，请重新刷入" ;;
+    *) abort "未阅读须知" ;;
+esac
+# import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 kernel_version=$(cat /proc/version | awk -F '-' '{print $1}' | awk '{print $3}')
 case $kernel_version in
     4.1*) ksu_supported=true ;;
@@ -60,7 +69,6 @@ case $kernel_version in
     6.6*) ksu_supported=true ;;
     *) ksu_supported=false ;;
 esac
-
 ui_print "  -> ksu_supported: $ksu_supported"
 $ksu_supported || abort "  -> Non-GKI device, abort."
 
